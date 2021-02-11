@@ -1,0 +1,13 @@
+[package]
+name = "niwl-server"
+version = "0.1.0"
+authors = ["Sarah Jamie Lewis <sarah@openprivacy.ca>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+fuzzytags = {path="../../fuzzymetatag"}
+rocket = "0.4.6"
+rocket_contrib = {version="0.4.6", features=["sqlite_pool"]}
+chrono = "0.4.19"

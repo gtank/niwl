@@ -1,0 +1,2 @@
+[global.databases]
+tags = { url = "./tags.sqlite", pool_size = 20 }
