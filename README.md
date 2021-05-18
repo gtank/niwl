@@ -1,4 +1,4 @@
-# niwl - a prototype system for metadata resistant notifications
+# niwl - a prototype system for open, decentralized, metadata resistant communication
 
 **niwl** (_/nɪu̯l/_) - fog, mist or haze (Welsh).
 
@@ -8,12 +8,96 @@ event has happened e.g. a new group message, a payment etc.
 **niwl** provides a set of libraries, clients and servers to provide this in a metadata resistant, bandwidth
 efficient way based on [fuzzytags](https://crates.io/crates/fuzzytags).
 
-# Overview
+# How Niwl Works
+
+A Niwl system relies on a single, untrusted routing server that acts as a bulletin board.
+
+Niwl clients can post and fetch messages to and from the server. When posting a message a client attaches a fuzzytag
+generated for the receiver that allows the receiver to not only identify the message, but also to restrict the number
+of other messages they have to download (see [Fuzzytags](https://docs.openprivacy.ca/fuzzytags-book/introduction.html) and [Fuzzy Message Detection](https://eprint.iacr.org/2021/089))
+
+In order to provide statistical anonymity , the above base functionality is extended by a special class of client
+called `random ejection mixers` or `REMs` for short.
+
+`REMs` reinforce the anonymity of the system in two ways:
+
+1. `REMs` download all the of messages from the server. Thus providing cover for receivers who download only a fraction 
+   of the messages. A Niwl server cannot distinguish between a message intended for a REM from a message intended for an
+   ordinary client.
+   
+2. Clients can wrap messages to other clients in a message that is first forwarded to a `REM`. The `REM` then decrypts 
+   the message and adds it to a store of messages - ejecting a previously stored message (at random) first to make space.
+   
+
+## Random Ejection Mixers (REMs)
+
+A REM starts with a store of `n` randomly generated messages with randomly generated fuzzytags. These messages are 
+for all intents and purposes "noise". Each REM also generates a TaggingKey that it can provide (publicly or privately)
+to other clients who wish to use the REMs services.
+
+Each REM constantly checks the Niwl Server for messages. It checks each message it downloads against its RootSecret
+and if the FuzzyTag verifies then it proceeds to decrypt the message.
+
+The primary service a REM provides is anonymous mixing. A decrypted mixpacket contains 2 fields:
+
+1. The fuzzytag of the message to forward.
+2. The message itself, which we will assume to be encrypted by some out-of-scope process.
+
+Once a message is decrypted, an existing message from the store is randomly chosen to be ejected by the mix - and is
+posted to the Niwl Server. The new decrypted message takes its place in the message store.
+
+### On the Privacy of REMs
+
+Fuzzytags themselves can only be linked to receivers via those in position of a RootSecret *or* Niwl Servers who
+possess the `VerificationKey` - as such, assuming that there is no collusion between a particular REM and a Niwl Server
+there is no mechanism through which a REM can associate message with a (set of) receiver(s).
+
+Further, (again assuming no collusion between a particular REM and a Niwl Server), there is no mechanism for a REM to associate
+a message with a particular sender.
+
+Finally, and perhaps most importantly, there is no limit on the number of REMs permitted in a particular system. Different
+parties can select different REMs with different trust valuations. REMs can join the system at any time without permission
+from any other entity. In other words, unlike traditional mixnets or onion routing, the system does not rely on consensus
+regarding the mixing entities to ensure privacy.
+
+### On the Security of REMS
+
+`n-1 attacks` / `flooding attacks` and other active attacks on mixers are a valid concern with any mixing strategy. 
+
+This broad genre of attacks can be generalized as follows:
+
+1. REMs start with a pool of randomly generated messages, this protected initial messages sent to the REM.
+2. Over time this pool is probabilistically replaced by messages from the network.
+3. A malicious Niwl server, having identified a REM, can flood the REM with its own messages.
+4. At a certain number of messages, the probability that a REM store contains only messages from the Niwl server approaches 1.0.
+5. A Niwl server can then delay every other message sent to it by other clients one-by-one.
+    1. If the message isn't for the REM then nothing will happen.
+    2. If the message is for the REM then the REM will either eject a message known to the Niwl Server, or it will eject
+        an unknown message than the Niwl Server can then correlate with a Sender and a set of Receivers.
+
+First, we should note that Niwl is less prone to these kinds of attacks because:
+
+1. REMs are not, a-priori, known to the Niwl Server and such are more difficult to target than mixers in traditional mixnets.
+2. Different parties can rely on different REMs without compromising metadata privacy.
+
+As such targeting a particular mix is not an effective strategy for undermining the anonymity set of the entire system.
+
+Further, REMs employ [heartbeat messages](references/heartbeat.pdf) (messages periodically sent to the Niwl server addressed to the REM)
+to detect such attacks. If a REM does not receive its own heartbeat message shortly after it is sent, it begins injecting random messages
+   into its pool to thwart mixers. It can also display this status publicly and/or include the status in legitimate messages alerting
+   other clients to the malicious Niwl Server
+
+
+# Code Overview
+
+**niwl** provides common library functions useful to all other packages.
 
 **niwl-server** provides a web server with a json API for posting new tags and querying the tags database.
 
 **niwl-client** provides a command-line application for managing secrets, tagging keys of parties and posting / querying
 for new tags.
+
+**niwl-rem** provides an implementation of the random ejection mixer.
 
 For a more detailed overview please check out each individual crate.
 
@@ -33,3 +117,7 @@ For a more detailed overview please check out each individual crate.
 
     niwl-client bob.profile detect 10
     7e441275a5c3f88606c34c3451a44eaeaa025680cfcb3d9db53992501cc22134 4f7a7f961bc19297fee98da5f8601aa8373429b80b10c55dbe8116aa8c497a0e 71d8da
+
+## References
+
+* Danezis, George, and Len Sassaman. "Heartbeat traffic to counter (n-1) attacks: red-green-black mixes." Proceedings of the 2003 ACM workshop on Privacy in the electronic society. 2003.

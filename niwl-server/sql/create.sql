@@ -1,4 +1,5 @@
-create table if not exists tags (
-              id text primary key,
-              tag blob not null unique
-          )
+CREATE TABLE IF NOT EXISTS tags (
+              id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+              tag BLOB NOT NULL UNIQUE,
+              message TEXT NOT NULL
+)

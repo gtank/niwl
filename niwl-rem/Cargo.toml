@@ -1,7 +1,6 @@
 [package]
-name = "niwl-client"
+name = "niwl-rem"
 version = "0.1.0"
-authors = ["Sarah Jamie Lewis <sarah@openprivacy.ca>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -17,3 +16,4 @@ hex = "0.4.2"
 base32 = "0.4.0"
 reqwest = {version="0.11.0", features=["json"]}
 tokio = "1.2.0"
+chrono = {version="0.4.19", features=["serde"]}

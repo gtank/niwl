@@ -1,2 +1,2 @@
 [workspace]
-members=["./niwl", "niwl-client","niwl-server"]
+members=["niwl", "niwl-client","niwl-server","niwl-rem"]
