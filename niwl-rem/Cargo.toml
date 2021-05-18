@@ -1,12 +1,15 @@
 [package]
 name = "niwl-rem"
+description = "random ejection mixer implementation for a prototype system for open, decentralized, metadata resistant communication using fuzzytags and random ejection mixers"
+license = "MIT"
+repository = "https://git.openprivacy.ca/openprivacy/niwl"
 version = "0.1.0"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-niwl = {path="../niwl"}
+niwl = {version="0.1.0", path="../niwl"}
 fuzzytags = "0.4.2"
 clap = "3.0.0-beta.2"
 serde = {version="1.0.123", features=["derive"]}

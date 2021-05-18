@@ -1,5 +1,8 @@
 [package]
 name = "niwl-server"
+description = "server implementation for a prototype system for open, decentralized, metadata resistant communication using fuzzytags and random ejection mixers"
+license = "MIT"
+repository = "https://git.openprivacy.ca/openprivacy/niwl"
 version = "0.1.0"
 authors = ["Sarah Jamie Lewis <sarah@openprivacy.ca>"]
 edition = "2018"
@@ -7,7 +10,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-niwl = {path="../niwl"}
+niwl = {version="0.1.0", path="../niwl"}
 fuzzytags = "0.4.2"
 rocket = "0.4.6"
 rocket_contrib = {version="0.4.6", features=["sqlite_pool"]}

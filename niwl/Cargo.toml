@@ -1,5 +1,8 @@
 [package]
 name = "niwl"
+description = "core library for a prototype system for open, decentralized, metadata resistant communication using fuzzytags and random ejection mixers"
+license = "MIT"
+repository = "https://git.openprivacy.ca/openprivacy/niwl"
 version = "0.1.0"
 authors = ["Sarah Jamie Lewis <sarah@openprivacy.ca>"]
 edition = "2018"
