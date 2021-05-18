@@ -113,7 +113,21 @@ other clients to the malicious Niwl Server.
 The rate at which a niwl sends out a heartbeat message is also a vector for passive profiling. Heartbeats must not
 be distinguishable from other niwl traffic through their rate.
 
-Finally, the fact that a REM 
+Finally, the fact that a REM operates 24/7 will make it stand out from a party that only uses the system for part
+of the day (or week...etc.) - the only practical defense to this is to have more services and bots make use of the
+niwl system other than mixers - as traffic diversity increases, the less utility tells like frequency of message
+sends ultimately have.
+
+### Notes on IP and other networking Metadata.
+
+niwl is designed to provide metadata security when operated over an unprotected network. Ideally, a niwl server should
+learn nothing about the habits of a particular IP address other than they are using niwl. In practice, as discussed above
+a server can likely distinguish between automated services and manual clients.
+
+Clients may wish to hide their use of niwl from a network adversary (at a risk of revealing that they are using another anonymizing network).
+This will also further reduce the ability of niwl to correlate senders with specific behaviour and can be seen as
+complimentary, but optional.
+
 
 # Code Overview
 

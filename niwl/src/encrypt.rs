@@ -50,6 +50,7 @@ impl PublicKey {
         let key = hash.finalize().to_vec();
         let secret_box = SecretBox::new(key, Salsa20).unwrap();
 
+        // TODO: Fixed Size Packets
         let ciphertext = secret_box.seal(message.as_bytes(), nonce);
         TaggedCiphertext {
             tag: tag.clone(),
