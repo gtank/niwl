@@ -2,11 +2,10 @@
 
 **niwl** (_/nɪu̯l/_) - fog, mist or haze (Welsh).
 
-Privacy preserving applications often require a mechanism for providing notifications to parties that an
-event has happened e.g. a new group message, a payment etc.  
+**niwl** is an **experimental** bandwidth efficient anonymous communication system based on [fuzzytags](https://crates.io/crates/fuzzytags) in combination
+with untrusted mixing nodes and an additional untrusted routing server.
 
-**niwl** provides a set of libraries, clients and servers to provide this in a metadata resistant, bandwidth
-efficient way based on [fuzzytags](https://crates.io/crates/fuzzytags).
+This workspace provides a prototype set of libraries, clients and servers.
 
 ## Security (hic sunt dracones)
 
@@ -19,11 +18,27 @@ which also has a large list of security warnings.
 
 I urge you to not rely on this code or derivative systems until it has been reviewed and given considerable thought. 
 
-# How Niwl Works
+# Motivation
 
-A Niwl system relies on a single, untrusted routing server that acts as a bulletin board.
+Instead of placing messages into deterministic buckets based on the recipient, [Fuzzy Message Detection](https://eprint.iacr.org/2021/089.pdf)  
+allows each message to probabilistically address itself to several parties in addition to the intended party - 
+utilizing the anonymity of the whole set of participants, instead of the ones who happen to share a bucket for a given round.
 
-Niwl clients can post and fetch messages to and from the server. When posting a message a client attaches a fuzzytag
+Unfortunately, naive deployments are [vulnerable to intersection attacks and statistical analysis](https://docs.openprivacy.ca/fuzzytags-book/simulation-eu-core-email.html)
+which forces a requirement an additional layer of sender anonymity is necessary to prevent metadata analysis.
+
+In order to obtain sender anonymity without introducing an external mix network or anonymizing overlay network such 
+as tor or i2p, we can observe that clients are free to implement any behaviour they want directly on top of the 
+fuzzy message detection system - and that includes mixing.
+
+
+# How niwl Works
+
+A niwl system relies on a single, untrusted routing server that acts as a bulletin board. We assume that clients
+communicate with this server via https such that network adversaries are unable to determine the exact messages
+sent and received by each client.
+
+niwl clients can post and fetch messages to and from the server. When posting a message a client attaches a fuzzytag
 generated for the receiver that allows the receiver to not only identify the message, but also to restrict the number
 of other messages they have to download (see [Fuzzytags](https://docs.openprivacy.ca/fuzzytags-book/introduction.html) and [Fuzzy Message Detection](https://eprint.iacr.org/2021/089))
 
@@ -33,12 +48,14 @@ called `random ejection mixers` or `REMs` for short.
 `REMs` reinforce the anonymity of the system in two ways:
 
 1. `REMs` download all the of messages from the server. Thus providing cover for receivers who download only a fraction 
-   of the messages. A Niwl server cannot distinguish between a message intended for a REM from a message intended for an
+   of the messages. A niwl server cannot distinguish between a message intended for a REM from a message intended for an
    ordinary client.
    
 2. Clients can wrap messages to other clients in a message that is first forwarded to a `REM`. The `REM` then decrypts 
    the message and adds it to a store of messages - ejecting a previously stored message (at random) first to make space.
    
+Note: This comes at the cost of doubling the traffic in the system (1 message to the REM and another message to
+the end client). Fuzzy message detection allows clients to reduce the amount of messages they have to download.
 
 ## Random Ejection Mixers (REMs)
 
@@ -46,7 +63,7 @@ A REM starts with a store of `n` randomly generated messages with randomly gener
 for all intents and purposes "noise". Each REM also generates a TaggingKey that it can provide (publicly or privately)
 to other clients who wish to use the REMs services.
 
-Each REM constantly checks the Niwl Server for messages. It checks each message it downloads against its RootSecret
+Each REM constantly checks the niwl Server for messages. It checks each message it downloads against its RootSecret
 and if the FuzzyTag verifies then it proceeds to decrypt the message.
 
 The primary service a REM provides is anonymous mixing. A decrypted mixpacket contains 2 fields:
@@ -55,15 +72,15 @@ The primary service a REM provides is anonymous mixing. A decrypted mixpacket co
 2. The message itself, which we will assume to be encrypted by some out-of-scope process.
 
 Once a message is decrypted, an existing message from the store is randomly chosen to be ejected by the mix - and is
-posted to the Niwl Server. The new decrypted message takes its place in the message store.
+posted to the niwl Server. The new decrypted message takes its place in the message store.
 
 ### On the Privacy of REMs
 
-Fuzzytags themselves can only be linked to receivers via those in position of a RootSecret *or* Niwl Servers who
-possess the `DetectionKey` - as such, assuming that there is no collusion between a particular REM and a Niwl Server
+Fuzzytags themselves can only be linked to receivers via those in position of a RootSecret *or* niwl Servers who
+possess the `DetectionKey` - as such, assuming that there is no collusion between a particular REM and a niwl Server
 there is no mechanism through which a REM can associate message with a (set of) receiver(s).
 
-Further, (again assuming no collusion between a particular REM and a Niwl Server), there is no mechanism for a REM to associate
+Further, (again assuming no collusion between a particular REM and a niwl Server), there is no mechanism for a REM to associate
 a message with a particular sender.
 
 Finally, and perhaps most importantly, there is no limit on the number of REMs permitted in a particular system. Different
@@ -79,14 +96,14 @@ This broad genre of attacks can be generalized as follows:
 
 1. REMs start with a pool of randomly generated messages, this protected initial messages sent to the REM.
 2. Over time this pool is probabilistically replaced by messages from the network.
-3. A malicious Niwl server, having identified a REM, can flood the REM with its own messages.
+3. A malicious niwl server, having identified a REM, can flood the REM with its own messages.
 4. At a certain number of messages, the probability that a REM store contains only messages from the niwl server approaches 1.0.
-5. A Niwl server can then delay every other message sent to it by other clients one-by-one.
+5. A niwl server can then delay every other message sent to it by other clients one-by-one.
     1. If the message isn't for the REM then nothing will happen.
-    2. If the message is for the REM then the REM will either eject a message known to the Niwl Server, or it will eject
-        an unknown message than the Niwl Server can then correlate with a Sender and a set of Receivers.
+    2. If the message is for the REM then the REM will either eject a message known to the niwl Server, or it will eject
+        an unknown message than the niwl Server can then correlate with a Sender and a set of Receivers.
        
-Before diving into mitigation strategies it is worth outlining a few properties of Niwl that differ from other
+Before diving into mitigation strategies it is worth outlining a few properties of niwl that differ from other
 mixing-based anonymity systems.
 
 0. Using REMs are not mandatory; parties may exchange messages with each other directly. Doing so does introduce a vulnerability
@@ -100,15 +117,24 @@ Additionally, we should also enumerate what could go wrong, in addition to an ac
 The niwl server may deliberately drop or delay packets arbitrarily. Beyond this prototype it is worth considering 
 incentive mechanisms such as ([token-based services](https://openprivacy.ca/research/OPTR2019-01/)) to mitigate this.
 
-Niwl servers may attempt to passively profile traffic originating from clients in an attempt to determine mixing nodes. 
+niwl may attempt to perform a "tagging attack" however there is nothing within the structure of niwl packets that
+allows a tag to be placed on a message. The fuzzytags themselves will fail to verify if they are modified in any way,
+and the ciphertext itself is bound to the fuzzytag both through the derived encryption key, and the nonce. And interference
+with a packet is equivalent to dropping a packet.
+
+Malicious entities can only tag their own message through the system (something that requires collusion to
+take advantage of). (NOTE: this is functionally equivalent to Sphinx, and it might be worth just converting this
+over to use Sphinx)
+
+niwl servers may attempt to passively profile traffic originating from clients in an attempt to determine mixing nodes. 
 REMs always download all messages from the niwl server and so the only available metadata exposed is the rate at which 
 a REM *sends* messages. This can be partially mitigated by introducing random delays between individual sends, and between 
 syncing periods.
    
-REMs employ [heartbeat messages](references/heartbeat.pdf) (messages periodically sent to the Niwl server addressed to the REM)
+REMs employ [heartbeat messages](references/heartbeat.pdf) (messages periodically sent to the niwl server addressed to the REM)
 to detect such attacks. If a REM does not receive its own heartbeat message shortly after it is sent, it begins injecting random messages 
 into its pool to thwart mixers. It can also display this status publicly and/or include the status in legitimate messages alerting 
-other clients to the malicious Niwl Server.
+other clients to the malicious niwl Server.
 
 The rate at which a niwl sends out a heartbeat message is also a vector for passive profiling. Heartbeats must not
 be distinguishable from other niwl traffic through their rate.
@@ -130,7 +156,7 @@ Because of this only confidentiality and integrity of the message contents is as
 Any party that knows the `PublicKey` and the public `TaggingKey` of another party can encrypt and send messages to them,
 and the recipient party has no mechanism to certify the origin of these messages.
 
-Any applications built on top of Niwl need to provide an additional encryption layer that provides authenticity
+Any applications built on top of niwl need to provide an additional encryption layer that provides authenticity
 (e.g. a complete diffie-hellman key exchange involving pre=exchanged long term identity public keys).
 
 ### Notes on IP and other networking Metadata.
@@ -146,9 +172,10 @@ complimentary, but optional.
 ### Notes on future work and expansions
 
 There is no reason that a client could chain a sequence of mixers together via onion encrypted their original
-message to multiple mix nodes. In that sense we can treat the system as a superposition of  free-route mix networks.
+message to multiple mix nodes. In that sense we can treat the system as a superposition of free-route mix networks.
 
-
+Analysis should be done to determine the anonymity of this system and the impact of added more mixers to the overall
+anonymity of the fuzzy message detection.
 
 # Code Overview
 
@@ -206,6 +233,8 @@ For a more detailed overview please check out each individual crate.
 - FuzzyTags is based on [Fuzzy Message Detection](https://eprint.iacr.org/2021/089) by Gabrielle Beck and Julia Len and Ian Miers and Matthew Green
 
 ## References
+
+* Beck, Gabrielle, et al. "Fuzzy Message Detection."
 
 * Danezis, George, and Len Sassaman. "Heartbeat traffic to counter (n-1) attacks: red-green-black mixes." Proceedings of the 2003 ACM workshop on Privacy in the electronic society. 2003.
 
