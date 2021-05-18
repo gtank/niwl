@@ -3,6 +3,8 @@ use chrono::{DateTime, Duration, Local, NaiveDateTime};
 use fuzzytags::{RootSecret, Tag, TaggingKey};
 use niwl::encrypt::{PrivateKey, TaggedCiphertext};
 use niwl::Profile;
+use rand::rngs::OsRng;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::fmt::Error;
 
@@ -15,13 +17,25 @@ pub enum MixMessage {
 pub struct RandomEjectionMix {
     heartbeat_id: Tag<24>,
     last_heartbeat: DateTime<Local>,
+    store: Vec<TaggedCiphertext>,
 }
 
 impl RandomEjectionMix {
     pub fn init(tag: Tag<24>) -> RandomEjectionMix {
+        let mut store = vec![];
+        for i in 0..10 {
+            let random_tag = RootSecret::<24>::generate().tagging_key().generate_tag();
+            let random_secret = PrivateKey::generate();
+            let random_encryption = random_secret
+                .public_key()
+                .encrypt(&random_tag, &String::new());
+            store.push(random_encryption);
+        }
+
         RandomEjectionMix {
             heartbeat_id: tag,
             last_heartbeat: Local::now(),
+            store,
         }
     }
 
@@ -75,6 +89,11 @@ impl RandomEjectionMix {
 
     // Actually do the Random Ejection Mixing...
     fn random_ejection_mix(&mut self, ciphertext: &TaggedCiphertext) -> TaggedCiphertext {
-        ciphertext.clone()
+        let mut rng = OsRng::default();
+        let random_index = rng.gen_range(0..10);
+        println!("[DEBUG] Ejecting {} ", random_index);
+        let ejection = self.store[random_index].clone();
+        self.store[random_index] = ciphertext.clone();
+        ejection
     }
 }

@@ -85,7 +85,6 @@ fn main() {
                                 let mut latest_tag = None;
                                 for (tag, ciphertext) in detected_tags.detected_tags.iter() {
                                     if detection_key.test_tag(&tag) {
-                                        random_delay().await;
                                         let plaintext = profile.private_key.decrypt(ciphertext);
                                         match plaintext {
                                             Some(plaintext) => match rem.push(tag, &plaintext) {
