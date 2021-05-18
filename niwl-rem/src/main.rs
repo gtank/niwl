@@ -3,6 +3,7 @@ use clap::Clap;
 use niwl::Profile;
 use niwl_rem::MixMessage::Heartbeat;
 use niwl_rem::{MixMessage, RandomEjectionMix};
+use rand::Rng;
 use std::time::Duration;
 
 #[derive(Clap)]
@@ -52,6 +53,7 @@ fn main() {
         }
         SubCommand::Run(_cmd) => {
             let mut profile = Profile::get_profile(&opts.profile_filename);
+            let filename = opts.profile_filename.clone();
             let server = opts.niwl_server.clone();
             tokio::runtime::Builder::new_current_thread()
                 .enable_all()
@@ -60,7 +62,7 @@ fn main() {
                 .block_on(async {
                     let random_tag = profile.root_secret.tagging_key().generate_tag();
                     let mut rem = RandomEjectionMix::init(random_tag.clone());
-                    println!("kicking off initial heartbeat...");
+                    println!("[DEBUG] kicking off initial heartbeat...");
                     profile
                         .send_to_self(
                             &server,
@@ -68,15 +70,22 @@ fn main() {
                                 .unwrap(),
                         )
                         .await;
-                    println!("starting..");
+                    println!("[DEBUG] starting mixing loop");
                     let detection_key = profile.root_secret.extract_detection_key(24);
 
                     loop {
+
+
+                        if rem.check_heartbeat() == false {
+                            println!("[ERROR] Niwl Server is Delaying Messages for more than 2 Minutes...Possible Attack...")
+                        }
+
                         match profile.detect_tags(&server).await {
                             Ok(detected_tags) => {
                                 let mut latest_tag = None;
                                 for (tag, ciphertext) in detected_tags.detected_tags.iter() {
                                     if detection_key.test_tag(&tag) {
+                                        random_delay().await;
                                         let plaintext = profile.private_key.decrypt(ciphertext);
                                         match plaintext {
                                             Some(plaintext) => match rem.push(tag, &plaintext) {
@@ -114,10 +123,10 @@ fn main() {
                                     }
                                     latest_tag = Some(tag.clone());
                                 }
-                                println!("Updating...");
                                 match &latest_tag {
                                     Some(tag) => {
                                         profile.update_previously_seen_tag(tag);
+                                        profile.save(&filename);
                                     }
                                     _ => {}
                                 }
@@ -126,10 +135,18 @@ fn main() {
                                 println!("Error: {}", err)
                             }
                         }
-                        println!("sleeping..");
-                        tokio::time::sleep(Duration::new(5, 0)).await;
+
+                        random_delay().await;
                     }
                 });
         }
     }
+}
+
+async fn random_delay() {
+    let mut rng = rand::thread_rng();
+    let seconds = rng.gen_range(0..10);
+    let nanos = rng.gen_range(0..1_000_000_000);
+    println!("[DEBUG] Waiting {}.{}s", seconds, nanos);
+    tokio::time::sleep(Duration::new(seconds, nanos)).await;
 }

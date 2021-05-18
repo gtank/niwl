@@ -1080,6 +1080,7 @@ dependencies = [
  "fuzzytags",
  "hex",
  "niwl",
+ "rand 0.8.3",
  "reqwest",
  "serde",
  "serde_json",

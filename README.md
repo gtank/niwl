@@ -8,6 +8,17 @@ event has happened e.g. a new group message, a payment etc.
 **niwl** provides a set of libraries, clients and servers to provide this in a metadata resistant, bandwidth
 efficient way based on [fuzzytags](https://crates.io/crates/fuzzytags).
 
+## Security (hic sunt dracones)
+
+This crate workspace provides and documents a novel and highly experimental metadata resistant communication system.
+
+The code has not undergone any significant review.
+
+Further, it is based on an [experimental implementation (fuzzytags), of an experimental cryptographic scheme (FMD2)](https://git.openprivacy.ca/openprivacy/fuzzytags)
+which also has a large list of security warnings.
+
+I urge you to not rely on this code or derivative systems until it has been reviewed and given considerable thought. 
+
 # How Niwl Works
 
 A Niwl system relies on a single, untrusted routing server that acts as a bulletin board.
@@ -69,24 +80,40 @@ This broad genre of attacks can be generalized as follows:
 1. REMs start with a pool of randomly generated messages, this protected initial messages sent to the REM.
 2. Over time this pool is probabilistically replaced by messages from the network.
 3. A malicious Niwl server, having identified a REM, can flood the REM with its own messages.
-4. At a certain number of messages, the probability that a REM store contains only messages from the Niwl server approaches 1.0.
+4. At a certain number of messages, the probability that a REM store contains only messages from the niwl server approaches 1.0.
 5. A Niwl server can then delay every other message sent to it by other clients one-by-one.
     1. If the message isn't for the REM then nothing will happen.
     2. If the message is for the REM then the REM will either eject a message known to the Niwl Server, or it will eject
         an unknown message than the Niwl Server can then correlate with a Sender and a set of Receivers.
+       
+Before diving into mitigation strategies it is worth outlining a few properties of Niwl that differ from other
+mixing-based anonymity systems.
 
-First, we should note that Niwl is less prone to these kinds of attacks because:
+0. Using REMs are not mandatory; parties may exchange messages with each other directly. Doing so does introduce a vulnerability
+   to statistical analysis.
+1. Different parties can rely on different REMs without compromising metadata privacy, and without negotiation.
+2. If a REM becomes slow to respond or sends out and error alert, parties may choose to move to a different REM.
+3. Different REMs can adopt different mixing strategies, and may be selective about what traffic they mix.
 
-1. REMs are not, a-priori, known to the Niwl Server and such are more difficult to target than mixers in traditional mixnets.
-2. Different parties can rely on different REMs without compromising metadata privacy.
+Additionally, we should also enumerate what could go wrong, in addition to an active attack on a particular mix.
 
-As such targeting a particular mix is not an effective strategy for undermining the anonymity set of the entire system.
+The niwl server may deliberately drop or delay packets arbitrarily. Beyond this prototype it is worth considering 
+incentive mechanisms such as ([token-based services](https://openprivacy.ca/research/OPTR2019-01/)) to mitigate this.
 
-Further, REMs employ [heartbeat messages](references/heartbeat.pdf) (messages periodically sent to the Niwl server addressed to the REM)
-to detect such attacks. If a REM does not receive its own heartbeat message shortly after it is sent, it begins injecting random messages
-   into its pool to thwart mixers. It can also display this status publicly and/or include the status in legitimate messages alerting
-   other clients to the malicious Niwl Server
+Niwl servers may attempt to passively profile traffic originating from clients in an attempt to determine mixing nodes. 
+REMs always download all messages from the niwl server and so the only available metadata exposed is the rate at which 
+a REM *sends* messages. This can be partially mitigated by introducing random delays between individual sends, and between 
+syncing periods.
+   
+REMs employ [heartbeat messages](references/heartbeat.pdf) (messages periodically sent to the Niwl server addressed to the REM)
+to detect such attacks. If a REM does not receive its own heartbeat message shortly after it is sent, it begins injecting random messages 
+into its pool to thwart mixers. It can also display this status publicly and/or include the status in legitimate messages alerting 
+other clients to the malicious Niwl Server.
 
+The rate at which a niwl sends out a heartbeat message is also a vector for passive profiling. Heartbeats must not
+be distinguishable from other niwl traffic through their rate.
+
+Finally, the fact that a REM 
 
 # Code Overview
 
@@ -101,8 +128,9 @@ for new tags.
 
 For a more detailed overview please check out each individual crate.
 
-# Example
+# Examples
 
+## Simple Peer-to-Peer
 
     niwl-client alice.profile generate "alice"
     Tagging Key: auaaaaaaaaaaaylmnfrwkgaaaaaaaaaaadlbii3y7r6vmc7upbxa4myohaqmr5xl22bdxeed4abkotnovlmakzdo5stq2ibtjewm4rnkgzqwglrt72zfeyomvdpxqnu4ci4hwebyiseyn7pqfxypnvef7a3flu2hby7gdluh6wocxa5mvmimi2xorydcqaca2p2aevmue4cwyxnw2h7fkps7e6grgls66zgohbnwjibt6nlsdqjbrdjrzlsc3at3f43jyniz2i67ng6xdty5pr3elzedhjlvefhd6pjfc7g4owrz3dkq5xt2hhh3vvctkywqkcwriguayyx3pourepfs7s76bekrjgcjgj6zyid3ixmeh5ewqhkhxhzevf3uogvscxtpbksaclhccht7pj2fungnztfghshd6lsmegmysiiuyav6schtmyxmne2vfi4j4cxllm2crj3cqofsxjlxov3ms2zgtjzyxtubwtnwspc4jhijz4kufm6r3qkhpcyibx7ulceckx2a4g23tkhtgshtxq3fga7ptbhq5gcebwiq6cfolt4zbn72gbmtc43nw63vd4soxf4bnbhrykaoudfs3mh6laap6iwbngo4ylocs4w5hgd4t22yrtrmhkewsc2eytsosxyhaiuaww24mszscsojm2bcoldpokwuxbnfx7lgnzdcuae3y55zoen47noltjqgcpuqzl6upjcvutgvvro6nu2uyl36rcqmw2by2e45uqtsdnolbispxv2e5aeeuz5gytuf5f5e44nldmywtmxkfqfljml5gye6tj3qswmz6d36f2k4v7fbiuv7jzplzmghsgxvmq7fo3qp655obysbggkd3iqpk76p5umbpc2tk64oiklrponulkqf3v337aaxyn6nvzz2rpj3o374tftscsr7oilzkah63xpe2jc45dd4fuwxvlg3c33zgkminemqqfz7jdjtnawy77vpxxgnosbw4fwadhhggofmipboiqo55xygojdnfdkuzgfe4455sdqv5ytzdl55yuzlbdgsnwtgnfakmoyjhblzbuwohq7esayfxe72yqgci5dappiad7bc3ikfsydv5b7stifajkxuosu345upxg2hwzajj4uu7lxaykxgo22pslkxnidaoyevn3gamx63ec4fkhzguhbu6jt7pukr4rpafx24vd622f5wzux4corlxthjuhi2ewiu6laxx3aqfkzv2d2hhqzsac25vycmmxy
@@ -115,8 +143,32 @@ For a more detailed overview please check out each individual crate.
     niwl-client alice.profile tag-and-send bob 
     Tag for bob 7e441275a5c3f88606c34c3451a44eaeaa025680cfcb3d9db53992501cc22134 4f7a7f961bc19297fee98da5f8601aa8373429b80b10c55dbe8116aa8c497a0e 71d8da
 
-    niwl-client bob.profile detect 10
+    niwl-client bob.profile detect
     7e441275a5c3f88606c34c3451a44eaeaa025680cfcb3d9db53992501cc22134 4f7a7f961bc19297fee98da5f8601aa8373429b80b10c55dbe8116aa8c497a0e 71d8da
+
+## Mix and Send
+
+      // Create a mixer
+      niwl-rem generate mixer
+      <!--- snip key -->
+      niwl-rem run
+      [DEBUG] kicking off initial heartbeat...
+      .....
+
+
+      //  Alice imports a keyset for a mixer and sends a message to bob via the mixer using `tag-and-mix`
+      niwl-client alice.niwl import-tagging-key auaaaaaaaaaaa3ljpbsxegaaaaaaaaaaabeiwbh2iiojfcurszypf4urscr5p7s6q7dzoeqyamrtx63hoakgogb7azd3ov37hippyqdar4povsf7oq25zogfr4qjabgzqcxedttrfceqffywwubechylxd4qzouedzkkhyg2f6e6aftdypvfoff6345li5hmfetjja6aswyffb5ngohin2cdg5qokko7s4kb7d7hb33ki6uuaenxi7neuden2fxxys3dczicfacw3iwhqw7kygs67kzre7tljrfktss4whzhurmozs4znyrnnjmzazsbrijl2fmcatc3v6ptxdpw35vt6zwnyz2l7fcpblmtrnthmrmxiej3hcvi5d7qiwj6s7wi2dygu2ref2o5jm2tug3lxgbbgqwsqvoo7d5eropddbkhcbr5pzls5nco5hkpnuubho54i4msm7kinzobnc5rgyduo2dpl6jo6pnlb7nckmpcgmcyrntg52xmvzhbxumrtiwvhxaqdscsrvgz7eg5szngetzsitpdfhycskxmnxwe6himyllywdxzalojuit5ap5ugfsmcmywn5hciwupx2y2asgjxowmhjhiubjph6b6y7jiuyqnyjjrwehotass4432hrilxzxzrmppdbt2yo3kfmdtxv5fseyp2k7ld2gr7z5ds3fxc5mtilvj3fzaw5tabhxtf73uykozbgjimzs7cfluhcmwitytjdw72r3ws552fjre6pq5jwx2ihd5u2odegvhq7wuqg5xmjvmayirqywobsdkm7szk7r5n4svoareaomq3cmmxwpv45ftfnp2adzmcb4bqzwvvwfsjjfsmepb7ocyw6bgy6hh7cugfafv6ww3pukhzydemisv67r4wbeoyhdebx2mp22wjcyqzcsa66k3k236uz7v3sf7n5577td52zjwiu27wiugehvymi3nnfm5qx3ps7ts7qkp6y2qqf4rdyg3z23oswhw6ku2nxlniesc4u6nhcg5h3olcrrbh4c3q3nyejnbs2msyxxuasofm6ayn5fl5rhomr74jzmp35xfzw7mu6uwciwbcommq733d3cvtpwhetcqjoxpbrydcdrhvux43ybbauc6aqkwlpoid7cfrycexadbe3ilmzlinpppr43k7y6cj3rewsu42gb5ici5a3sy7mk66xudceu3novaxdtscgucz3yy3jp26ovqqdmvedmgk33p6puqguhdwwuxqz6u5jyhjvxllg7w55xpptj64dphamnix3wxcjimginb7d2k7qz6ey
+      Got: mixer: aa18c8597fd54a7779a0770c15ecbcc4d247009c007425172ba560b17f180516
+      niwl-client alice.niwl tag-and-mix mixer bob  "Hello Mixnet"
+
+      // Bob should receive the message some time later.
+      niwl-client bob.niwl detect
+      message: Hello Mixnet
+
+## Acknowledgements
+
+- Thanks to Erinn Atwater for helpful discussions.
+- FuzzyTags is based on [Fuzzy Message Detection](https://eprint.iacr.org/2021/089) by Gabrielle Beck and Julia Len and Ian Miers and Matthew Green
 
 ## References
 

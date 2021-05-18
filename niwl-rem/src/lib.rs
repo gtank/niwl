@@ -14,11 +14,15 @@ pub enum MixMessage {
 
 pub struct RandomEjectionMix {
     heartbeat_id: Tag<24>,
+    last_heartbeat: DateTime<Local>,
 }
 
 impl RandomEjectionMix {
     pub fn init(tag: Tag<24>) -> RandomEjectionMix {
-        RandomEjectionMix { heartbeat_id: tag }
+        RandomEjectionMix {
+            heartbeat_id: tag,
+            last_heartbeat: Local::now(),
+        }
     }
 
     pub fn push(&mut self, tag: &Tag<24>, plaintext: &String) -> Option<MixMessage> {
@@ -42,13 +46,31 @@ impl RandomEjectionMix {
         }
     }
 
-    fn process_heartbeat(&self, tag: &Tag<24>, heartbeat: &DateTime<Local>) -> Option<MixMessage> {
+    fn process_heartbeat(
+        &mut self,
+        tag: &Tag<24>,
+        heartbeat: &DateTime<Local>,
+    ) -> Option<MixMessage> {
         if tag == &self.heartbeat_id {
-            println!("Received HeartBeat @ {}", heartbeat);
-            let new_heartbeat = Heartbeat(self.heartbeat_id.clone(), Local::now());
+            println!("[DEBUG] Received HeartBeat from {}", heartbeat);
+            self.last_heartbeat = heartbeat.clone();
+            let now = Local::now();
+            let new_heartbeat = Heartbeat(self.heartbeat_id.clone(), now.clone());
             return Some(new_heartbeat);
         }
         None
+    }
+
+    pub fn check_heartbeat(&self) -> bool {
+        let time_since_last = Local::now() - self.last_heartbeat;
+        println!(
+            "[DEBUG] Time since last heartbeat: {}s",
+            time_since_last.num_seconds()
+        );
+        if time_since_last > Duration::minutes(2) {
+            return false;
+        }
+        return true;
     }
 
     // Actually do the Random Ejection Mixing...
