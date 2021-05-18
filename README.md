@@ -60,7 +60,7 @@ posted to the Niwl Server. The new decrypted message takes its place in the mess
 ### On the Privacy of REMs
 
 Fuzzytags themselves can only be linked to receivers via those in position of a RootSecret *or* Niwl Servers who
-possess the `VerificationKey` - as such, assuming that there is no collusion between a particular REM and a Niwl Server
+possess the `DetectionKey` - as such, assuming that there is no collusion between a particular REM and a Niwl Server
 there is no mechanism through which a REM can associate message with a (set of) receiver(s).
 
 Further, (again assuming no collusion between a particular REM and a Niwl Server), there is no mechanism for a REM to associate
@@ -118,6 +118,21 @@ of the day (or week...etc.) - the only practical defense to this is to have more
 niwl system other than mixers - as traffic diversity increases, the less utility tells like frequency of message
 sends ultimately have.
 
+
+### Encryption
+
+For the purposes of this prototype message are encrypted using a simple one-use, unidirectional diffie-hellman derived key,
+where the sending party generates an ephemeral keypair (which then uses libsodiums secretbox to perform the actual encryption). 
+This key binds the message to a particular fuzzytag (which prevents tampering) but does nothing else to certify the
+authenticity of the message.
+
+Because of this only confidentiality and integrity of the message contents is asserted - no authentication mechanisms is provided. 
+Any party that knows the `PublicKey` and the public `TaggingKey` of another party can encrypt and send messages to them,
+and the recipient party has no mechanism to certify the origin of these messages.
+
+Any applications built on top of Niwl need to provide an additional encryption layer that provides authenticity
+(e.g. a complete diffie-hellman key exchange involving pre=exchanged long term identity public keys).
+
 ### Notes on IP and other networking Metadata.
 
 niwl is designed to provide metadata security when operated over an unprotected network. Ideally, a niwl server should
@@ -127,6 +142,12 @@ a server can likely distinguish between automated services and manual clients.
 Clients may wish to hide their use of niwl from a network adversary (at a risk of revealing that they are using another anonymizing network).
 This will also further reduce the ability of niwl to correlate senders with specific behaviour and can be seen as
 complimentary, but optional.
+
+### Notes on future work and expansions
+
+There is no reason that a client could chain a sequence of mixers together via onion encrypted their original
+message to multiple mix nodes. In that sense we can treat the system as a superposition of  free-route mix networks.
+
 
 
 # Code Overview
@@ -187,3 +208,5 @@ For a more detailed overview please check out each individual crate.
 ## References
 
 * Danezis, George, and Len Sassaman. "Heartbeat traffic to counter (n-1) attacks: red-green-black mixes." Proceedings of the 2003 ACM workshop on Privacy in the electronic society. 2003.
+
+* Sampigethaya, Krishna, and Radha Poovendran. "A survey on mix networks and their secure applications." Proceedings of the IEEE 94.12 (2006): 2142-2181.

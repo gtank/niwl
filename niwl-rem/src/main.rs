@@ -3,7 +3,7 @@ use clap::Clap;
 use niwl::Profile;
 use niwl_rem::MixMessage::Heartbeat;
 use niwl_rem::{MixMessage, RandomEjectionMix};
-use rand::Rng;
+use rand::{thread_rng, Rng};
 use std::time::Duration;
 
 #[derive(Clap)]
@@ -77,8 +77,25 @@ fn main() {
 
 
                         if rem.check_heartbeat() == false {
-                            println!("[ERROR] Niwl Server is Delaying Messages for more than 2 Minutes...Possible Attack...")
+                            println!("[ERROR] Niwl Server is Delaying Messages for more than 2 Minutes...Possible Attack...");
+                            let num_messages : i32 = thread_rng().gen_range(0..100);
+                            // Kick out a random number of messages...
+                            for i in 0..num_messages {
+                                random_delay();
+                                profile.send_to_self(&server, &serde_json::to_string(
+                                    &RandomEjectionMix::get_random(),
+                                ).unwrap()).await;
+                            }
+                        } else {
+                            // After every heart beat kick out a random
+                            // message so we wil eventually clear the pool
+                            random_delay();
+                            profile.send_to_self(&server,&serde_json::to_string(
+                                &RandomEjectionMix::get_random(),
+                            ).unwrap()).await;
+
                         }
+
 
                         match profile.detect_tags(&server).await {
                             Ok(detected_tags) => {

@@ -24,12 +24,7 @@ impl RandomEjectionMix {
     pub fn init(tag: Tag<24>) -> RandomEjectionMix {
         let mut store = vec![];
         for i in 0..10 {
-            let random_tag = RootSecret::<24>::generate().tagging_key().generate_tag();
-            let random_secret = PrivateKey::generate();
-            let random_encryption = random_secret
-                .public_key()
-                .encrypt(&random_tag, &String::new());
-            store.push(random_encryption);
+            store.push(RandomEjectionMix::get_random());
         }
 
         RandomEjectionMix {
@@ -37,6 +32,15 @@ impl RandomEjectionMix {
             last_heartbeat: Local::now(),
             store,
         }
+    }
+
+    pub fn get_random() -> TaggedCiphertext {
+        let random_tag = RootSecret::<24>::generate().tagging_key().generate_tag();
+        let random_secret = PrivateKey::generate();
+        let random_encryption = random_secret
+            .public_key()
+            .encrypt(&random_tag, &String::new());
+        random_encryption
     }
 
     pub fn push(&mut self, tag: &Tag<24>, plaintext: &String) -> Option<MixMessage> {

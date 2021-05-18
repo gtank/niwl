@@ -29,6 +29,13 @@ pub struct PublicKey(RistrettoPoint);
 impl PublicKey {
     /// Encrypt to Tag provides uni-directional encrypted
     pub fn encrypt(&self, tag: &Tag<24>, message: &String) -> TaggedCiphertext {
+        let mut paddedMessage = message.clone();
+        if message.len() < 1024 {
+            for _i in message.len()..1024 {
+                paddedMessage += " "
+            }
+        }
+
         // Generate a random point. We will use the public part as a nonce
         // And the private part to generate a key.
         let mut rng = OsRng::default();
@@ -51,7 +58,7 @@ impl PublicKey {
         let secret_box = SecretBox::new(key, Salsa20).unwrap();
 
         // TODO: Fixed Size Packets
-        let ciphertext = secret_box.seal(message.as_bytes(), nonce);
+        let ciphertext = secret_box.seal(paddedMessage.as_bytes(), nonce);
         TaggedCiphertext {
             tag: tag.clone(),
             nonce: z,
@@ -91,7 +98,7 @@ impl PrivateKey {
         let secret_box = SecretBox::new(key, Salsa20).unwrap();
         match secret_box.unseal(ciphertext.ciphertext.as_slice(), nonce) {
             Some(plaintext) => match String::from_utf8(plaintext) {
-                Ok(plaintext) => Some(plaintext),
+                Ok(plaintext) => Some(String::from(plaintext.trim_end())),
                 Err(_) => None,
             },
             None => None,

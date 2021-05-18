@@ -101,7 +101,7 @@ fn main() {
                 .build()
                 .unwrap()
                 .block_on(async {
-                    let result = profile.tag_and_send(server, contact, &cmd.message).await;
+                    let result = profile.tag_and_send(&server, contact, &cmd.message).await;
                     println!("{}", result.unwrap().text().await.unwrap());
                 });
         }
@@ -129,16 +129,28 @@ fn main() {
                 .build()
                 .unwrap()
                 .block_on(async {
-                    match profile.detect_tags(server).await {
+                    match profile.detect_tags(&server).await {
                         Ok(detected_tags) => {
+                            let mut count = 0;
+                            let mut to_me_count = 0;
                             for (tag, ciphertext) in detected_tags.detected_tags.iter() {
+                                count += 1;
                                 match profile.private_key.decrypt(ciphertext) {
                                     Some(message) => {
+                                        to_me_count += 1;
                                         println!("message: {}", message)
                                     }
                                     _ => {}
                                 }
                                 profile.update_previously_seen_tag(tag);
+                            }
+                            if count > 0 {
+                                println!(
+                                    "Received {} Messages from server. {} were true positives.",
+                                    count, to_me_count
+                                );
+                            } else {
+                                println!("Received no messages.");
                             }
                         }
                         Err(err) => {
