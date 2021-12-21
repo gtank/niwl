@@ -1,6 +1,7 @@
 #![feature(into_future)]
 use crate::encrypt::{PrivateKey, PublicKey, TaggedCiphertext};
 use fuzzytags::{DetectionKey, RootSecret, Tag, TaggingKey};
+use rand::rngs::OsRng;
 use reqwest::{Error, Response};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -64,7 +65,7 @@ impl Profile {
     }
 
     pub fn new(profile_name: String, detection_key_length: usize) -> Profile {
-        let root_secret = RootSecret::<24>::generate();
+        let root_secret = RootSecret::<24>::generate(&mut OsRng);
         let private_key = PrivateKey::generate();
         Profile {
             profile_name,
@@ -97,7 +98,7 @@ impl Profile {
 
     pub fn generate_tag(&self, id: &String) -> Result<Tag<24>, NiwlError> {
         if self.tagging_keys.contains_key(id) {
-            let tag = self.tagging_keys[id].0.generate_tag();
+            let tag = self.tagging_keys[id].0.generate_tag(&mut OsRng);
             println!("Tag for {} {}", id, tag.to_string());
             return Ok(tag);
         }
@@ -156,7 +157,7 @@ impl Profile {
         message: &String,
     ) -> Result<Response, NiwlError> {
         let client = reqwest::Client::new();
-        let tag = self.root_secret.tagging_key().generate_tag();
+        let tag = self.root_secret.tagging_key().generate_tag(&mut OsRng);
         let ciphertext = self.private_key.public_key().encrypt(&tag, message);
 
         let result = client

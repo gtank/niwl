@@ -35,7 +35,7 @@ impl RandomEjectionMix {
     }
 
     pub fn get_random() -> TaggedCiphertext {
-        let random_tag = RootSecret::<24>::generate().tagging_key().generate_tag();
+        let random_tag = RootSecret::<24>::generate(&mut OsRng).tagging_key().generate_tag(&mut OsRng);
         let random_secret = PrivateKey::generate();
         let random_encryption = random_secret
             .public_key()
@@ -94,7 +94,7 @@ impl RandomEjectionMix {
     // Actually do the Random Ejection Mixing...
     fn random_ejection_mix(&mut self, ciphertext: &TaggedCiphertext) -> TaggedCiphertext {
         let mut rng = OsRng::default();
-        let random_index = rng.gen_range(0..10);
+        let random_index = rng.gen_range(0, 10);
         println!("[DEBUG] Ejecting {} ", random_index);
         let ejection = self.store[random_index].clone();
         self.store[random_index] = ciphertext.clone();

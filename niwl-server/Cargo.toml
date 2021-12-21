@@ -11,7 +11,7 @@ edition = "2018"
 
 [dependencies]
 niwl = {version="0.1.0", path="../niwl"}
-fuzzytags = "0.4.2"
-rocket = "0.4.6"
+fuzzytags = "0.6.0"
+rocket = "0.4.10"
 rocket_contrib = {version="0.4.6", features=["sqlite_pool"]}
 serde_json = "1.0.61"

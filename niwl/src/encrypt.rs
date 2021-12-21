@@ -110,17 +110,18 @@ impl PrivateKey {
 mod tests {
     use crate::encrypt::PrivateKey;
     use fuzzytags::RootSecret;
+    use rand::rngs::OsRng;
 
     #[test]
     fn test_encrypt_to_tag() {
         let secret = PrivateKey::generate();
         let public_key = secret.public_key();
 
-        let root_secret = RootSecret::<24>::generate();
+        let root_secret = RootSecret::<24>::generate(&mut OsRng);
         let tagging_key = root_secret.tagging_key();
 
         let ciphertext =
-            public_key.encrypt(&tagging_key.generate_tag(), &String::from("Hello World"));
+            public_key.encrypt(&tagging_key.generate_tag(&mut OsRng), &String::from("Hello World"));
 
         let plaintext = secret.decrypt(&ciphertext);
         assert_eq!(plaintext.unwrap(), String::from("Hello World"))

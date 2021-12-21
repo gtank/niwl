@@ -3,7 +3,7 @@ use clap::Clap;
 use niwl::Profile;
 use niwl_rem::MixMessage::Heartbeat;
 use niwl_rem::{MixMessage, RandomEjectionMix};
-use rand::{thread_rng, Rng};
+use rand::{thread_rng, Rng, rngs::OsRng};
 use std::time::Duration;
 
 #[derive(Clap)]
@@ -60,7 +60,7 @@ fn main() {
                 .build()
                 .unwrap()
                 .block_on(async {
-                    let random_tag = profile.root_secret.tagging_key().generate_tag();
+                    let random_tag = profile.root_secret.tagging_key().generate_tag(&mut OsRng);
                     let mut rem = RandomEjectionMix::init(random_tag.clone());
                     println!("[DEBUG] kicking off initial heartbeat...");
                     profile
@@ -78,7 +78,7 @@ fn main() {
 
                         if rem.check_heartbeat() == false {
                             println!("[ERROR] Niwl Server is Delaying Messages for more than 2 Minutes...Possible Attack...");
-                            let num_messages : i32 = thread_rng().gen_range(0..100);
+                            let num_messages : i32 = thread_rng().gen_range(0, 100);
                             // Kick out a random number of messages...
                             for i in 0..num_messages {
                                 random_delay();
@@ -161,8 +161,8 @@ fn main() {
 
 async fn random_delay() {
     let mut rng = rand::thread_rng();
-    let seconds = rng.gen_range(0..10);
-    let nanos = rng.gen_range(0..1_000_000_000);
+    let seconds = rng.gen_range(0, 10);
+    let nanos = rng.gen_range(0, 1_000_000_000);
     println!("[DEBUG] Waiting {}.{}s", seconds, nanos);
     tokio::time::sleep(Duration::new(seconds, nanos)).await;
 }

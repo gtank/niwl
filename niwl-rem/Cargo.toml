@@ -10,7 +10,7 @@ edition = "2018"
 
 [dependencies]
 niwl = {version="0.1.0", path="../niwl"}
-fuzzytags = "0.4.2"
+fuzzytags = "0.6.0"
 clap = "3.0.0-beta.2"
 serde = {version="1.0.123", features=["derive"]}
 serde_json = "1.0.61"
@@ -20,4 +20,4 @@ base32 = "0.4.0"
 reqwest = {version="0.11.0", features=["json"]}
 tokio = "1.2.0"
 chrono = {version="0.4.19", features=["serde"]}
-rand = "0.8.3"
+rand = "0.7.3"
